@@ -1,5 +1,15 @@
 import { Agent } from "@mastra/core/agent";
 import { openai } from '@ai-sdk/openai';
+import { z } from "zod";
+
+const DrilldownResultSchema = z.object({
+    input_data: z.string(),
+    drilldowned_problems: z.array(z.string()),
+    questions: z.array(z.string()),
+    solved: z.boolean()
+});
+
+type DrilldownResult = z.infer<typeof DrilldownResultSchema>;
 
 const drilldownAgent = new Agent({
     name: "Drilldown Agent",
@@ -19,10 +29,10 @@ const resultAgent = new Agent({
     model: openai("gpt-4o-mini"),
 });
 
-export const drilldown = async (input: string) => {
+export const drilldown = async (input: string): Promise<DrilldownResult> => {
     const drilldownResult = await drilldownAgent.generate(input);
     const result = await resultAgent.generate(drilldownResult.text);
-    return result;
+    return DrilldownResultSchema.parse(JSON.parse(result.text));
 };
 
 
