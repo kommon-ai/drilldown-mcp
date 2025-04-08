@@ -1,32 +1,26 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { drilldown } from "./agents/drilldown.js";
+import { drilldownAgent, resultAgent } from "./agents/drilldown";
 
-const DrilldownParamsSchema = z.object({
-    input_data: z.string().describe("抽象度の高い要件")
-});
-
-type DrilldownParams = z.infer<typeof DrilldownParamsSchema>;
-
+// Create an MCP server
 const server = new McpServer({
-    name: "Drilldown MCP Server",
-    version: "1.0.0",
-    tools: [
-        {
-            name: "drilldown",
-            description: "抽象度の高い要件を具体的な実装要件に分解し、不明瞭な箇所を特定します",
-            parameters: DrilldownParamsSchema,
-            handler: async (params: DrilldownParams) => {
-                const result = await drilldown(params.input_data);
-                return {
-                    content: [{
-                        type: "text",
-                        text: JSON.stringify(result)
-                    }]
-                };
-            }
-        }
-    ]
+  name: "Drilldown MCP Server",
+  version: "1.0.0"
 });
 
-export default server; 
+const drilldownSchema = {
+  input_data: z.string()
+};
+
+// Add an addition tool
+server.tool("drilldown",
+  drilldownSchema,
+  async ({ input_data }) => {
+    const result = await drilldownAgent.generate(input_data)
+    const result2 = await resultAgent.generate(result.text)
+    return {
+      content: [{ type: "text", text: result2.text }]
+    }
+  }
+);
+export default server
